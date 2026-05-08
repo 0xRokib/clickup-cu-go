@@ -32,6 +32,102 @@ var defaultStatuses = map[string]string{
 	"done":    "DONE",
 }
 
+var ui = newStyle(colorEnabled())
+
+type style struct {
+	enabled bool
+}
+
+func newStyle(enabled bool) style { return style{enabled: enabled} }
+
+func colorEnabled() bool {
+	info, err := os.Stdout.Stat()
+	isTTY := err == nil && (info.Mode()&os.ModeCharDevice) != 0
+	return colorEnabledFromEnv(isTTY)
+}
+
+func colorEnabledFromEnv(isTTY bool) bool {
+	if os.Getenv("NO_COLOR") != "" || os.Getenv("CU_PLAIN") != "" || os.Getenv("TERM") == "dumb" {
+		return false
+	}
+	return isTTY
+}
+
+func (s style) ansi(code, text string) string {
+	if !s.enabled {
+		return text
+	}
+	return "\x1b[" + code + "m" + text + "\x1b[0m"
+}
+func (s style) rgb(r, g, b int, text string) string {
+	return s.ansi(fmt.Sprintf("38;2;%d;%d;%d", r, g, b), text)
+}
+func (s style) bg(r, g, b int, fg string, text string) string {
+	if !s.enabled {
+		return text
+	}
+	return s.ansi(fmt.Sprintf("48;2;%d;%d;%d;%s", r, g, b, fg), text)
+}
+func (s style) bold(text string) string   { return s.ansi("1", text) }
+func (s style) dim(text string) string    { return s.ansi("2", text) }
+func (s style) dark(text string) string   { return s.rgb(41, 45, 52, text) }
+func (s style) purple(text string) string { return s.rgb(123, 104, 238, text) }
+func (s style) pink(text string) string   { return s.rgb(253, 113, 175, text) }
+func (s style) blue(text string) string   { return s.rgb(73, 204, 249, text) }
+func (s style) yellow(text string) string { return s.rgb(255, 200, 0, text) }
+
+func (s style) brand() string { return s.purple("c") + s.pink("u") }
+func (s style) divider(width int) string {
+	if width <= 0 {
+		width = 62
+	}
+	chunk := width / 4
+	if chunk < 8 {
+		chunk = 8
+	}
+	return s.purple(strings.Repeat("─", chunk)) +
+		s.pink(strings.Repeat("─", chunk)) +
+		s.blue(strings.Repeat("─", chunk)) +
+		s.yellow(strings.Repeat("─", width-(chunk*3)))
+}
+func (s style) statusPill(status string) string {
+	label := " " + strings.ToUpper(strings.TrimSpace(status)) + " "
+	if strings.TrimSpace(status) == "" {
+		label = " UNKNOWN "
+	}
+	if !s.enabled {
+		return "[" + strings.TrimSpace(label) + "]"
+	}
+	switch statusAccent(status) {
+	case "pink":
+		return s.bg(253, 113, 175, "38;2;255;255;255", label)
+	case "blue":
+		return s.bg(73, 204, 249, "38;2;41;45;52", label)
+	case "yellow":
+		return s.bg(255, 200, 0, "38;2;41;45;52", label)
+	case "purple":
+		return s.bg(123, 104, 238, "38;2;255;255;255", label)
+	default:
+		return s.bg(41, 45, 52, "38;2;255;255;255", label)
+	}
+}
+
+func statusAccent(status string) string {
+	st := strings.ToLower(status)
+	switch {
+	case strings.Contains(st, "blocked"):
+		return "pink"
+	case strings.Contains(st, "review") || strings.Contains(st, "qa") || strings.Contains(st, "testing"):
+		return "blue"
+	case strings.Contains(st, "done") || strings.Contains(st, "release") || strings.Contains(st, "ready"):
+		return "yellow"
+	case strings.Contains(st, "progress"):
+		return "purple"
+	default:
+		return "dark"
+	}
+}
+
 type Config struct {
 	WorkspaceID   string            `json:"workspaceId"`
 	UserID        string            `json:"userId"`
@@ -302,7 +398,7 @@ func (a *App) createTask(listID string, body map[string]any) (map[string]any, er
 
 func (a *App) cmdToday() error {
 	header("Today", "Timer, priority work, and next ClickUp moves")
-	fmt.Println("\nRunning now")
+	fmt.Printf("\n%s %s\n", ui.blue("●"), ui.bold("Running now"))
 	if cur, err := a.currentTimer(); err == nil {
 		entry := firstMap(cur["data"], cur["currentEntry"], cur)
 		task := toMap(entry["task"])
@@ -311,12 +407,12 @@ func (a *App) cmdToday() error {
 			if elapsed == 0 && entry["start"] != nil {
 				elapsed = float64(time.Now().UnixMilli()) - num(entry["start"])
 			}
-			fmt.Printf("  ● %s\n     %s • %s\n", clean(firstNonEmpty(str(task["name"]), str(entry["description"]), "active timer")), firstNonEmpty(str(task["id"]), str(entry["tid"])), fmtDuration(int64(elapsed)))
+			fmt.Printf("  %s %s\n     %s %s %s\n", ui.purple("●"), ui.bold(clean(firstNonEmpty(str(task["name"]), str(entry["description"]), "active timer"))), ui.blue(firstNonEmpty(str(task["id"]), str(entry["tid"]))), ui.dim("•"), ui.yellow(fmtDuration(int64(elapsed))))
 		} else {
-			fmt.Println("  No active timer.")
+			fmt.Printf("  %s\n", ui.dim("No active timer."))
 		}
 	} else {
-		fmt.Println("  No active timer.")
+		fmt.Printf("  %s\n", ui.dim("No active timer."))
 	}
 	tasks, err := a.listTasks(false, "")
 	if err != nil {
@@ -330,10 +426,10 @@ func (a *App) cmdToday() error {
 	i = printGroup("Not started", groups["notStarted"], i)
 	i = printGroup("Other", groups["other"], i)
 	if i == 1 {
-		fmt.Println("\n✓ No open tasks found.")
+		fmt.Printf("\n%s %s\n", ui.blue("✓"), ui.bold("No open tasks found."))
 	}
-	fmt.Println("\nNext moves")
-	fmt.Println("  cu start <id> • cu show <id> • cu stop • cu release <id> • cu done <id>")
+	fmt.Printf("\n%s %s\n", ui.yellow("→"), ui.bold("Next moves"))
+	fmt.Printf("  %s %s %s %s %s %s %s\n", ui.blue("cu start <id>"), ui.dim("•"), ui.blue("cu show <id>"), ui.dim("•"), ui.blue("cu stop"), ui.dim("•"), ui.blue("cu release <id> • cu done <id>"))
 	return nil
 }
 
@@ -361,7 +457,7 @@ func (a *App) cmdList(args []string) error {
 	}
 	header("Tasks", sub)
 	if len(tasks) == 0 {
-		fmt.Println("✓ Nothing to show.")
+		success("Nothing to show.", "")
 		return nil
 	}
 	for i, t := range tasks {
@@ -380,24 +476,24 @@ func (a *App) cmdShow(id string) error {
 	}
 	header(compact(firstNonEmpty(str(t["name"]), "Task"), 72), str(t["id"]))
 	taskRow(t, 0)
-	fmt.Println("\nDetails")
-	fmt.Printf("  Assignees  %s\n", assignees(t))
+	fmt.Printf("\n%s %s\n", ui.blue("◆"), ui.bold("Details"))
+	fmt.Printf("  %s  %s\n", ui.dim("Assignees"), assignees(t))
 	if n := int64(num(t["time_estimate"])); n > 0 {
-		fmt.Printf("  Estimate   %s\n", fmtDuration(n))
+		fmt.Printf("  %s   %s\n", ui.dim("Estimate"), ui.yellow(fmtDuration(n)))
 	} else {
-		fmt.Println("  Estimate   none")
+		fmt.Printf("  %s   %s\n", ui.dim("Estimate"), ui.dim("none"))
 	}
 	if n := int64(num(t["time_spent"])); n > 0 {
-		fmt.Printf("  Spent      %s\n", fmtDuration(n))
+		fmt.Printf("  %s      %s\n", ui.dim("Spent"), ui.purple(fmtDuration(n)))
 	} else {
-		fmt.Println("  Spent      0m")
+		fmt.Printf("  %s      %s\n", ui.dim("Spent"), ui.dim("0m"))
 	}
 	if p := str(t["parent"]); p != "" {
-		fmt.Printf("  Parent     %s\n", p)
+		fmt.Printf("  %s     %s\n", ui.dim("Parent"), p)
 	}
 	desc := firstNonEmpty(str(t["description"]), str(t["text_content"]))
 	if desc != "" {
-		fmt.Println("\nDescription")
+		fmt.Printf("\n%s %s\n", ui.purple("◆"), ui.bold("Description"))
 		fmt.Printf("  %s\n", compact(desc, 800))
 	}
 	return nil
@@ -433,7 +529,7 @@ func (a *App) cmdStart(id string) error {
 		task, _ = a.getTask(id)
 	}
 	success("Started "+id, str(task["name"]))
-	fmt.Printf("→ Timer active • %s\n  %s\n", statusMsg, taskURL(id))
+	fmt.Printf("%s Timer active %s %s\n  %s\n", ui.yellow("→"), ui.dim("•"), statusMsg, ui.blue(taskURL(id)))
 	return nil
 }
 
@@ -506,7 +602,7 @@ func (a *App) cmdCreate(args []string) error {
 		return err
 	}
 	success("Created "+str(t["id"]), str(t["name"]))
-	fmt.Println("  " + firstNonEmpty(str(t["url"]), taskURL(str(t["id"]))))
+	fmt.Println("  " + ui.blue(firstNonEmpty(str(t["url"]), taskURL(str(t["id"])))))
 	return nil
 }
 
@@ -529,7 +625,7 @@ func (a *App) cmdSubtask(args []string) error {
 		return err
 	}
 	success("Created subtask "+str(t["id"]), str(t["name"]))
-	fmt.Println("  " + firstNonEmpty(str(t["url"]), taskURL(str(t["id"]))))
+	fmt.Println("  " + ui.blue(firstNonEmpty(str(t["url"]), taskURL(str(t["id"])))))
 	return nil
 }
 
@@ -597,7 +693,7 @@ func (a *App) cmdToken(token string) error {
 	_ = os.Chmod(a.TokenPath, 0600)
 	success("Token saved", a.TokenPath)
 	if env := firstNonEmpty(os.Getenv("CLICKUP_API_TOKEN"), os.Getenv("CLICKUP_TOKEN")); env != "" && env != token {
-		fmt.Println("→ A different CLICKUP_API_TOKEN/CLICKUP_TOKEN is exported and will override this file token.")
+		fmt.Printf("%s %s\n", ui.yellow("→"), "A different CLICKUP_API_TOKEN/CLICKUP_TOKEN is exported and will override this file token.")
 	}
 	return nil
 }
@@ -633,13 +729,13 @@ func (a *App) cmdInit() error {
 	b, _ := os.ReadFile(a.ConfigPath)
 	fmt.Println(clean(string(b)))
 	if a.Token == "" {
-		fmt.Println("→ Set token first for auto-discovery: cu token pk_xxx")
+		fmt.Printf("%s Set token first for auto-discovery: %s\n", ui.yellow("→"), ui.blue("cu token pk_xxx"))
 	} else if sample.WorkspaceID == "" || sample.UserID == "" {
-		fmt.Println("→ Could not auto-discover all IDs. Check token permissions or set missing values manually.")
+		fmt.Printf("%s Could not auto-discover all IDs. Check token permissions or set missing values manually.\n", ui.yellow("→"))
 	} else if sample.DefaultListID == "" {
-		fmt.Println("→ Workspace/user detected. Set defaultListId manually if you want cu create.")
+		fmt.Printf("%s Workspace/user detected. Set defaultListId manually if you want cu create.\n", ui.yellow("→"))
 	}
-	fmt.Printf("  Token stored at %s\n", a.TokenPath)
+	fmt.Printf("  %s %s\n", ui.dim("Token stored at"), a.TokenPath)
 	return nil
 }
 
@@ -711,11 +807,11 @@ func (a *App) discoverFirstListID(teamID string) string {
 
 func help(a *App) {
 	header("ClickUp CLI", "Fast daily task control from terminal or Pi")
-	fmt.Println("\nDaily")
+	helpSection("Daily", "purple")
 	helpLine("cu today", "Dashboard: timer + my open tasks")
 	helpLine("cu list [all|status X]", "List tasks")
 	helpLine("cu show <id>", "Show task details")
-	fmt.Println("\nWorkflow statuses")
+	helpSection("Workflow statuses", "blue")
 	helpLine("cu backlog <id>", "Set BACKLOG")
 	helpLine("cu todo <id>", "Set TO-DO")
 	helpLine("cu start <id>", "Set IN PROGRESS + start timer")
@@ -725,20 +821,20 @@ func help(a *App) {
 	helpLine("cu blocked <id>", "Set BLOCKED")
 	helpLine("cu release <id>", "Set READY FOR RELEASE")
 	helpLine("cu done <id>", "Set DONE")
-	fmt.Println("\nTime")
+	helpSection("Time", "yellow")
 	helpLine("cu stop", "Stop current timer")
 	helpLine("cu estimate <id> <dur>", "Set estimate (2h, 30m, 2h 30m)")
 	helpLine("cu addtime <id> <dur> [note]", "Add manual time entry")
-	fmt.Println("\nCreate/update")
+	helpSection("Create/update", "pink")
 	helpLine("cu create <title>", "Create in default list")
 	helpLine("cu subtask <parent> <title>", "Create subtask")
 	helpLine("cu assign <id> <user-id|me...>", "Add assignees")
-	fmt.Println("\nSetup")
+	helpSection("Setup", "purple")
 	helpLine("cu init", "Create/show config")
 	helpLine("cu token <pk_xxx>", "Save token locally")
-	fmt.Printf("\nConfigured status keys: backlog, todo, start, review, qa, blocked, release, done\n")
-	fmt.Printf("Config: %s\n", a.ConfigPath)
-	fmt.Printf("Token:  CLICKUP_API_TOKEN or %s\n", a.TokenPath)
+	fmt.Printf("\n%s %s\n", ui.dim("Configured status keys:"), "backlog, todo, start, review, qa, blocked, release, done")
+	fmt.Printf("%s %s\n", ui.dim("Config:"), a.ConfigPath)
+	fmt.Printf("%s  CLICKUP_API_TOKEN or %s\n", ui.dim("Token:"), a.TokenPath)
 }
 
 func parseDuration(input string) (int64, error) {
@@ -845,7 +941,7 @@ func printGroup(title string, arr []map[string]any, start int) int {
 	if len(arr) == 0 {
 		return start
 	}
-	fmt.Printf("\n%s %d\n", title, len(arr))
+	fmt.Printf("\n%s %s\n", ui.purple("◆"), ui.bold(fmt.Sprintf("%s %d", title, len(arr))))
 	for i, t := range arr {
 		taskRow(t, start+i)
 	}
@@ -855,25 +951,25 @@ func printGroup(title string, arr []map[string]any, start int) int {
 func taskRow(t map[string]any, i int) {
 	prefix := ""
 	if i > 0 {
-		prefix = fmt.Sprintf("%2d ", i)
+		prefix = ui.dim(fmt.Sprintf("%2d ", i))
 	}
-	fmt.Printf("  %s[%s] %s\n", prefix, statusName(t), compact(str(t["name"]), 80))
+	fmt.Printf("  %s%s %s\n", prefix, ui.statusPill(statusName(t)), ui.bold(compact(str(t["name"]), 80)))
 	fmt.Printf("     %s\n", taskMeta(t))
-	fmt.Printf("     %s\n", firstNonEmpty(str(t["url"]), taskURL(str(t["id"]))))
+	fmt.Printf("     %s\n", ui.blue(firstNonEmpty(str(t["url"]), taskURL(str(t["id"])))))
 }
 
 func taskMeta(t map[string]any) string {
-	bits := []string{str(t["id"])}
+	bits := []string{ui.blue(str(t["id"]))}
 	if p := priority(t); p != "" {
-		bits = append(bits, p)
+		bits = append(bits, ui.pink(p))
 	}
 	if d := due(t); d != "" {
-		bits = append(bits, "due "+d)
+		bits = append(bits, ui.yellow("due "+d))
 	}
 	if l := str(pathVal(t, "list.name")); l != "" {
-		bits = append(bits, l)
+		bits = append(bits, ui.dim(l))
 	}
-	return strings.Join(bits, " • ")
+	return strings.Join(bits, ui.dim(" • "))
 }
 
 func statusName(t map[string]any) string {
@@ -917,22 +1013,37 @@ func assignees(t map[string]any) string {
 }
 
 func header(title, subtitle string) {
-	fmt.Printf("\ncu %s\n", clean(title))
+	fmt.Printf("\n%s %s\n", ui.brand(), ui.bold(clean(title)))
 	if subtitle != "" {
-		fmt.Printf("   %s\n", clean(subtitle))
+		fmt.Printf("   %s\n", ui.dim(clean(subtitle)))
 	}
-	fmt.Println(strings.Repeat("─", 62))
+	fmt.Println(ui.divider(62))
 }
 
-func helpLine(command, desc string) { fmt.Printf("  %-32s %s\n", command, desc) }
+func helpSection(title, accent string) {
+	marker := ui.purple("◆")
+	switch accent {
+	case "blue":
+		marker = ui.blue("◆")
+	case "yellow":
+		marker = ui.yellow("◆")
+	case "pink":
+		marker = ui.pink("◆")
+	}
+	fmt.Printf("\n%s %s\n", marker, ui.bold(title))
+}
+
+func helpLine(command, desc string) {
+	fmt.Printf("  %s %s\n", ui.blue(fmt.Sprintf("%-32s", command)), ui.dim(desc))
+}
 func success(message, detail string) {
-	fmt.Printf("✓ %s\n", clean(message))
+	fmt.Printf("%s %s\n", ui.blue("✓"), ui.bold(clean(message)))
 	if detail != "" {
-		fmt.Printf("  %s\n", clean(detail))
+		fmt.Printf("  %s\n", ui.dim(clean(detail)))
 	}
 }
 func die(msg string) {
-	fmt.Fprintf(os.Stderr, "\n✕ %s error\n  %s\n  Help: %s help\n\n", cli, clean(msg), cli)
+	fmt.Fprintf(os.Stderr, "\n%s %s\n  %s\n  %s %s\n\n", ui.pink("✕"), ui.bold(cli+" error"), clean(msg), ui.dim("Help:"), ui.blue(cli+" help"))
 	os.Exit(1)
 }
 

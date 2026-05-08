@@ -207,6 +207,18 @@ cu assign TASK_ID USER_ID ANOTHER_USER_ID
 | `cu init` | Create/show config |
 | `cu help` | Show help |
 
+## Output style
+
+`cu` uses ClickUp-inspired terminal colors when running in an interactive terminal.
+
+Plain output:
+
+```bash
+NO_COLOR=1 cu today
+# or
+CU_PLAIN=1 cu today
+```
+
 ## Team troubleshooting
 
 ### `cu: command not found` or wrong `cu` runs
