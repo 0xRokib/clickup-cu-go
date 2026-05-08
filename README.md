@@ -54,6 +54,23 @@ Expected first path:
 /home/YOUR_NAME/go/bin/cu       # Linux default
 ```
 
+### Update installed Go version
+
+If you installed with `go install`, update to latest with the same command:
+
+```bash
+go install github.com/0xRokib/clickup-cu-go/cmd/cu@latest
+cu help
+```
+
+If `cu help` runs the wrong command, test directly:
+
+```bash
+$(go env GOPATH)/bin/cu help
+```
+
+Then make sure Go bin is first in `PATH` as shown above.
+
 ### Option 2: build from repo
 
 ```bash
@@ -64,13 +81,14 @@ sudo mv cu /usr/local/bin/cu
 cu help
 ```
 
-Update later:
+Update later if you built from repo:
 
 ```bash
 cd clickup-cu-go
 git pull
 go build -o cu ./cmd/cu
 sudo mv cu /usr/local/bin/cu
+cu help
 ```
 
 ## First-time setup
