@@ -1,0 +1,37 @@
+{
+  "name": "clickup-cu",
+  "version": "0.1.13",
+  "description": "Fast ClickUp CLI for daily task workflow, with optional Pi prompt shortcut.",
+  "type": "commonjs",
+  "bin": {
+    "cu": "bin/cu"
+  },
+  "files": [
+    "bin/",
+    "prompts/",
+    "examples/",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "clickup",
+    "cli",
+    "productivity",
+    "time-tracking",
+    "pi-package"
+  ],
+  "author": "Rokibul Hasan Rokib <rokibulhasan.ph@gmail.com>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "pi": {
+    "prompts": [
+      "./prompts"
+    ]
+  },
+  "scripts": {
+    "test": "node --check bin/cu && node bin/cu help >/dev/null",
+    "pack:dry": "npm pack --dry-run"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "workspaceId": "test",
+  "userId": "test",
+  "defaultListId": "test",
+  "statuses": {
+    "backlog": "BACKLOG",
+    "todo": "TO-DO",
+    "start": "IN PROGRESS",
+    "review": "REVIEW",
+    "qa": "QA/TESTING",
+    "blocked": "BLOCKED",
+    "release": "READY FOR RELEASE",
+    "done": "DONE"
+  }
+}

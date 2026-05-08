@@ -1,6 +1,15 @@
-# cu
+# clickup-cu JavaScript version
 
-Fast ClickUp CLI for team daily workflow. Written in Go. One native binary.
+This is the **JavaScript/Node.js branch** of the ClickUp CLI.
+
+Branches:
+
+| Branch | Version | Path |
+|---|---|---|
+| `main` | Go native binary version | `github.com/0xRokib/clickup-cu-go/tree/main` |
+| `js-version` | JavaScript/npm + Pi prompt version | `github.com/0xRokib/clickup-cu-go/tree/js-version` |
+
+Fast zero-dependency ClickUp CLI for daily task control from terminal or Pi.
 
 ```bash
 cu today
@@ -10,135 +19,74 @@ cu estimate TASK_ID 2h
 cu done TASK_ID
 ```
 
-## Quick install for team
+`TASK_ID`, `PARENT_TASK_ID`, `USER_ID`, `WORKSPACE_ID`, and `LIST_ID` are placeholders. Replace them with your ClickUp values.
 
-### Option 1: install with Go
+## Why
 
-Requires Go 1.22+.
+Use `cu` when opening ClickUp just to check tasks, start/stop timers, change status, or set estimates feels slow.
 
-```bash
-go install github.com/0xRokib/clickup-cu-go/cmd/cu@latest
-$(go env GOPATH)/bin/cu help
-```
-
-`go install` puts the binary here:
-
-```bash
-$(go env GOPATH)/bin/cu
-```
-
-On macOS/Linux, another system command named `cu` may already exist (often `/usr/bin/cu`). Put Go bin **first** in `PATH` so our ClickUp CLI wins.
-
-For zsh/macOS default:
-
-```bash
-echo 'export PATH="$(go env GOPATH)/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-which -a cu
-cu help
-```
-
-For bash/Linux:
-
-```bash
-echo 'export PATH="$(go env GOPATH)/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-which -a cu
-cu help
-```
-
-Expected first path:
+`cu` talks directly to the ClickUp REST API:
 
 ```text
-/Users/YOUR_NAME/go/bin/cu      # macOS default
-/home/YOUR_NAME/go/bin/cu       # Linux default
+Terminal/Pi -> cu -> ClickUp REST API
 ```
 
-### Update installed Go version
+It is faster and simpler than using MCP for daily repeated actions. Use ClickUp UI or MCP for rare/complex operations.
 
-Normal update:
+## Install
+
+Requires Node.js 18+.
 
 ```bash
-go install github.com/0xRokib/clickup-cu-go/cmd/cu@latest
+npm install -g clickup-cu
 cu help
 ```
 
-Force latest from GitHub if Go proxy/cache gives an old build:
+Use global install. Local install inside another project usually is not needed.
+
+If another system `cu` exists, check PATH:
 
 ```bash
-GOPROXY=direct GONOSUMDB=github.com/0xRokib/clickup-cu-go go install github.com/0xRokib/clickup-cu-go/cmd/cu@main
-cu help
+command -v cu      # macOS/Linux
+where.exe cu       # Windows
 ```
 
-If `cu help` runs the wrong command, test directly:
+## Setup
 
-```bash
-$(go env GOPATH)/bin/cu help
-```
-
-Then make sure Go bin is first in `PATH` as shown above.
-
-### Option 2: build from repo
-
-```bash
-git clone git@github.com:0xRokib/clickup-cu-go.git
-cd clickup-cu-go
-go build -o cu ./cmd/cu
-sudo mv cu /usr/local/bin/cu
-cu help
-```
-
-Update later if you built from repo:
-
-```bash
-cd clickup-cu-go
-git pull
-go build -o cu ./cmd/cu
-sudo mv cu /usr/local/bin/cu
-cu help
-```
-
-## First-time setup
-
-### 1. Get ClickUp token
-
-ClickUp:
+Get a ClickUp API token:
 
 ```text
-Profile/avatar -> Settings -> Apps -> API Token -> Generate
+ClickUp -> Profile/avatar -> Settings -> Apps -> API Token -> Generate
 ```
 
-### 2. Save token
+Save it:
 
 ```bash
 cu token pk_your_token_here
 ```
 
-This creates:
-
-```text
-~/.config/cu/token
-```
-
-You can also use env var instead:
-
-```bash
-export CLICKUP_API_TOKEN="pk_your_token_here"
-```
-
-### 3. Create config
+Then create config:
 
 ```bash
 cu init
 ```
 
-This creates:
+Files:
 
 ```text
+~/.config/cu/token
 ~/.config/cu/config.json
 ```
 
-If auto-discovery misses anything, edit the file:
+Both are written with owner-only permissions (`0600`). Environment variables also work and override the token file:
+
+```bash
+export CLICKUP_API_TOKEN="pk_your_token_here"
+# or
+export CLICKUP_TOKEN="pk_your_token_here"
+```
+
+Example config:
 
 ```json
 {
@@ -158,16 +106,14 @@ If auto-discovery misses anything, edit the file:
 }
 ```
 
-Status names must match your ClickUp workspace exactly.
-
-## Daily commands
+## Daily workflow
 
 ```bash
-cu today                         # dashboard: timer + tasks
-cu list                          # my open tasks
-cu list all                      # all open tasks in workspace
-cu list status "IN PROGRESS"     # tasks by status
-cu show TASK_ID                  # task details
+cu today                         # dashboard: timer + due/active/blocked/open tasks
+cu list                          # list your open tasks
+cu list all                      # list open tasks without assignee filter
+cu list status "IN PROGRESS"     # list by status
+cu show TASK_ID                  # show task details
 
 cu start TASK_ID                 # set IN PROGRESS + start timer
 cu progress TASK_ID              # set IN PROGRESS only
@@ -175,7 +121,7 @@ cu stop                          # stop current timer
 cu done TASK_ID                  # set DONE
 ```
 
-## Status shortcuts
+Status shortcuts:
 
 ```bash
 cu backlog TASK_ID
@@ -185,22 +131,18 @@ cu qa TASK_ID
 cu testing TASK_ID
 cu blocked TASK_ID
 cu release TASK_ID
-cu done TASK_ID
 ```
 
-## Time commands
+Time:
 
 ```bash
 cu estimate TASK_ID 2h
 cu estimate TASK_ID 2h 30m
 cu estimate TASK_ID 45m
-cu estimate TASK_ID 45        # plain number = minutes
-
 cu addtime TASK_ID 45m "backend work"
-cu addtime TASK_ID 2h 30m "debugging"
 ```
 
-## Create/update commands
+Create/update:
 
 ```bash
 cu create "Fix login bug"
@@ -209,153 +151,98 @@ cu assign TASK_ID me
 cu assign TASK_ID USER_ID ANOTHER_USER_ID
 ```
 
-`me` uses `userId` from config.
-
-## All commands
+## Commands
 
 | Command | Purpose |
 |---|---|
 | `cu today` | Daily dashboard |
 | `cu list [all]` | List tasks |
 | `cu list status "STATUS"` | List tasks by status |
-| `cu show TASK_ID` | Show task details |
+| `cu show TASK_ID` | Show one task |
 | `cu start TASK_ID` | Set start status + start timer |
-| `cu stop` | Stop timer |
-| `cu progress TASK_ID` | Set start status without timer |
-| `cu backlog/todo/review/qa/testing/blocked/release/done TASK_ID` | Change status |
+| `cu stop` | Stop current timer |
+| `cu backlog/todo/progress/review/qa/testing/blocked/release/done TASK_ID` | Change status |
 | `cu estimate TASK_ID DURATION` | Set estimate |
 | `cu addtime TASK_ID DURATION [note]` | Add manual time |
 | `cu create "TITLE"` | Create task in default list |
 | `cu subtask PARENT_TASK_ID "TITLE"` | Create subtask |
 | `cu assign TASK_ID USER_ID_OR_ME...` | Add assignees |
-| `cu token pk_xxx` | Save token |
+| `cu token pk_your_token_here` | Save token |
 | `cu init` | Create/show config |
 | `cu help` | Show help |
 
-## Output style
+Durations support `2h`, `30m`, `2h 30m`. Plain numbers mean minutes.
 
-`cu` uses ClickUp-inspired terminal colors when running in an interactive terminal.
+## Pi shortcut
 
-Plain output:
+This package includes `/cu-fast` for Pi.
 
 ```bash
-NO_COLOR=1 cu today
-# or
-CU_PLAIN=1 cu today
+pi install npm:clickup-cu
 ```
 
-Force color if your terminal shows plain text:
+Restart Pi or run:
 
-```bash
-CU_COLOR=1 cu help
-# or
-FORCE_COLOR=1 cu help
+```text
+/reload
 ```
 
-Make force color permanent if needed:
+Use:
 
-```bash
-# macOS/zsh
-echo 'export CU_COLOR=1' >> ~/.zshrc
-source ~/.zshrc
-
-# Linux/bash
-echo 'export CU_COLOR=1' >> ~/.bashrc
-source ~/.bashrc
+```text
+/cu-fast
+/cu-fast today
+/cu-fast start TASK_ID
+/cu-fast stop
+/cu-fast show TASK_ID
+/cu-fast estimate TASK_ID 2h
+/cu-fast done TASK_ID
 ```
 
-If `CU_COLOR=1` still shows plain text, force reinstall latest first:
+`/cu-fast` runs local `cu` through bash, so install and configure the CLI too:
 
 ```bash
-GOPROXY=direct GONOSUMDB=github.com/0xRokib/clickup-cu-go go install github.com/0xRokib/clickup-cu-go/cmd/cu@main
-CU_COLOR=1 cu help
-```
-
-## Team troubleshooting
-
-### `cu: command not found` or wrong `cu` runs
-
-Check all matching commands:
-
-```bash
-which -a cu
-```
-
-If you see `/usr/bin/cu` before Go's path, shell is running the system `cu`, not this ClickUp CLI.
-
-Test the Go-installed binary directly:
-
-```bash
-$(go env GOPATH)/bin/cu help
-```
-
-Fix by putting Go bin first in `PATH`.
-
-zsh/macOS:
-
-```bash
-echo 'export PATH="$(go env GOPATH)/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-```
-
-bash/Linux:
-
-```bash
-echo 'export PATH="$(go env GOPATH)/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-Then verify:
-
-```bash
-which -a cu
-cu help
-```
-
-The first `cu` should be under your Go bin path, usually `~/go/bin/cu`.
-
-### `missing ClickUp token`
-
-```bash
+npm install -g clickup-cu
 cu token pk_your_token_here
-```
-
-### `missing workspaceId` or `missing userId`
-
-```bash
 cu init
 ```
 
-Then edit:
+## REST mapping
 
-```text
-~/.config/cu/config.json
-```
-
-### Status update fails
-
-Your team workspace may use different status names. Fix `statuses` in config.
-
-### `cu create` fails
-
-Set `defaultListId` in config.
+| CLI action | REST API |
+|---|---|
+| `cu today` timer | `GET /team/{workspaceId}/time_entries/current` |
+| `cu today/list` tasks | `GET /team/{workspaceId}/task?...` |
+| `cu show TASK_ID` | `GET /task/{taskId}` |
+| status commands | `PUT /task/{taskId}` |
+| `cu start TASK_ID` timer | `POST /team/{workspaceId}/time_entries/start` |
+| `cu stop` | `POST /team/{workspaceId}/time_entries/stop` |
+| `cu estimate TASK_ID DURATION` | `PUT /task/{taskId}` with `time_estimate` |
+| `cu addtime TASK_ID DURATION` | `POST /team/{workspaceId}/time_entries` |
+| `cu create "TITLE"` | `POST /list/{defaultListId}/task` |
+| `cu subtask PARENT_TASK_ID "TITLE"` | `POST /list/{listId}/task` with `parent` |
+| `cu assign TASK_ID USER_ID_OR_ME...` | `POST /task/{taskId}/assignee` |
 
 ## Development
 
 ```bash
-go test ./...
-go run ./cmd/cu help
-go build -o cu ./cmd/cu
-gofmt -w cmd/cu/*.go
+git clone https://github.com/YOUR_USER/cu.git
+cd cu
+npm install -g .
+npm test
+npm pack --dry-run
+```
+
+Publish:
+
+```bash
+npm version patch
+npm publish --access public
 ```
 
 ## Security
 
-- Never commit or share `~/.config/cu/token`.
-- Never paste `pk_...` tokens in chat, issues, logs, screenshots, or recordings.
-- Each teammate should create their own token.
-- Rotate exposed tokens immediately.
-
-## License
-
-MIT
+- Never commit `~/.config/cu/token`.
+- Never paste `pk_...` in chat, issues, logs, screenshots, or recordings.
+- Each teammate should generate their own token.
+- Rotate exposed tokens.
