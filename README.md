@@ -1,6 +1,21 @@
-# cu
+# cu Go version
 
 Fast ClickUp CLI for team daily workflow. Written in Go. One native binary.
+
+Branches:
+
+| Branch | Version | Path |
+|---|---|---|
+| `main` | Go native binary version | `github.com/0xRokib/clickup-cu-go/tree/main` |
+| `js-version` | JavaScript/npm + Pi prompt version | `github.com/0xRokib/clickup-cu-go/tree/js-version` |
+
+Use the JS branch:
+
+```bash
+git clone git@github.com:0xRokib/clickup-cu-go.git
+cd clickup-cu-go
+git switch js-version
+```
 
 ```bash
 cu today
