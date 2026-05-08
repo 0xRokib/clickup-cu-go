@@ -18,18 +18,41 @@ Requires Go 1.22+.
 
 ```bash
 go install github.com/0xRokib/clickup-cu-go/cmd/cu@latest
-cu help
+$(go env GOPATH)/bin/cu help
 ```
 
-If `cu` is not found, add Go bin to your shell:
+`go install` puts the binary here:
 
 ```bash
-echo 'export PATH="$PATH:$(go env GOPATH)/bin"' >> ~/.zshrc
+$(go env GOPATH)/bin/cu
+```
+
+On macOS/Linux, another system command named `cu` may already exist (often `/usr/bin/cu`). Put Go bin **first** in `PATH` so our ClickUp CLI wins.
+
+For zsh/macOS default:
+
+```bash
+echo 'export PATH="$(go env GOPATH)/bin:$PATH"' >> ~/.zshrc
 source ~/.zshrc
+which -a cu
 cu help
 ```
 
-For bash users, use `~/.bashrc` instead of `~/.zshrc`.
+For bash/Linux:
+
+```bash
+echo 'export PATH="$(go env GOPATH)/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+which -a cu
+cu help
+```
+
+Expected first path:
+
+```text
+/Users/YOUR_NAME/go/bin/cu      # macOS default
+/home/YOUR_NAME/go/bin/cu       # Linux default
+```
 
 ### Option 2: build from repo
 
@@ -186,19 +209,46 @@ cu assign TASK_ID USER_ID ANOTHER_USER_ID
 
 ## Team troubleshooting
 
-### `cu: command not found`
+### `cu: command not found` or wrong `cu` runs
 
-Check install path:
-
-```bash
-which cu
-```
-
-If installed with Go, add Go bin to `PATH`:
+Check all matching commands:
 
 ```bash
-export PATH="$PATH:$(go env GOPATH)/bin"
+which -a cu
 ```
+
+If you see `/usr/bin/cu` before Go's path, shell is running the system `cu`, not this ClickUp CLI.
+
+Test the Go-installed binary directly:
+
+```bash
+$(go env GOPATH)/bin/cu help
+```
+
+Fix by putting Go bin first in `PATH`.
+
+zsh/macOS:
+
+```bash
+echo 'export PATH="$(go env GOPATH)/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+bash/Linux:
+
+```bash
+echo 'export PATH="$(go env GOPATH)/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+Then verify:
+
+```bash
+which -a cu
+cu help
+```
+
+The first `cu` should be under your Go bin path, usually `~/go/bin/cu`.
 
 ### `missing ClickUp token`
 
