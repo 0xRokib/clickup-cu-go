@@ -84,4 +84,19 @@ func TestColorEnabledFromEnv(t *testing.T) {
 	if !colorEnabledFromEnv(true) {
 		t.Fatal("tty with normal env should enable color")
 	}
+
+	if colorEnabledFromEnv(false) {
+		t.Fatal("non-tty should disable color by default")
+	}
+
+	t.Setenv("CU_COLOR", "1")
+	if !colorEnabledFromEnv(false) {
+		t.Fatal("CU_COLOR=1 should force color even when non-tty")
+	}
+
+	t.Setenv("CU_COLOR", "")
+	t.Setenv("FORCE_COLOR", "1")
+	if !colorEnabledFromEnv(false) {
+		t.Fatal("FORCE_COLOR=1 should force color even when non-tty")
+	}
 }

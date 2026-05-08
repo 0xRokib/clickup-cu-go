@@ -50,6 +50,9 @@ func colorEnabledFromEnv(isTTY bool) bool {
 	if os.Getenv("NO_COLOR") != "" || os.Getenv("CU_PLAIN") != "" || os.Getenv("TERM") == "dumb" {
 		return false
 	}
+	if os.Getenv("CU_COLOR") != "" || os.Getenv("FORCE_COLOR") != "" {
+		return true
+	}
 	return isTTY
 }
 

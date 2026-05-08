@@ -237,6 +237,21 @@ NO_COLOR=1 cu today
 CU_PLAIN=1 cu today
 ```
 
+Force color if your terminal shows plain text:
+
+```bash
+CU_COLOR=1 cu help
+# or
+FORCE_COLOR=1 cu help
+```
+
+Make force color permanent if needed:
+
+```bash
+echo 'export CU_COLOR=1' >> ~/.zshrc   # macOS/zsh
+source ~/.zshrc
+```
+
 ## Team troubleshooting
 
 ### `cu: command not found` or wrong `cu` runs
