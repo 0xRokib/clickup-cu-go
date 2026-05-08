@@ -56,10 +56,17 @@ Expected first path:
 
 ### Update installed Go version
 
-If you installed with `go install`, update to latest with the same command:
+Normal update:
 
 ```bash
 go install github.com/0xRokib/clickup-cu-go/cmd/cu@latest
+cu help
+```
+
+Force latest from GitHub if Go proxy/cache gives an old build:
+
+```bash
+GOPROXY=direct GONOSUMDB=github.com/0xRokib/clickup-cu-go go install github.com/0xRokib/clickup-cu-go/cmd/cu@main
 cu help
 ```
 
@@ -248,8 +255,20 @@ FORCE_COLOR=1 cu help
 Make force color permanent if needed:
 
 ```bash
-echo 'export CU_COLOR=1' >> ~/.zshrc   # macOS/zsh
+# macOS/zsh
+echo 'export CU_COLOR=1' >> ~/.zshrc
 source ~/.zshrc
+
+# Linux/bash
+echo 'export CU_COLOR=1' >> ~/.bashrc
+source ~/.bashrc
+```
+
+If `CU_COLOR=1` still shows plain text, force reinstall latest first:
+
+```bash
+GOPROXY=direct GONOSUMDB=github.com/0xRokib/clickup-cu-go go install github.com/0xRokib/clickup-cu-go/cmd/cu@main
+CU_COLOR=1 cu help
 ```
 
 ## Team troubleshooting

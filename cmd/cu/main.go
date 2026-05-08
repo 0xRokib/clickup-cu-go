@@ -976,7 +976,7 @@ func taskMeta(t map[string]any) string {
 }
 
 func statusName(t map[string]any) string {
-	if s := str(t["status"]); s != "" {
+	if s, ok := t["status"].(string); ok && strings.TrimSpace(s) != "" {
 		return s
 	}
 	if s := str(pathVal(t, "status.status")); s != "" {
@@ -986,7 +986,7 @@ func statusName(t map[string]any) string {
 }
 
 func priority(t map[string]any) string {
-	if s := str(t["priority"]); s != "" {
+	if s, ok := t["priority"].(string); ok && strings.TrimSpace(s) != "" {
 		return s
 	}
 	return str(pathVal(t, "priority.priority"))

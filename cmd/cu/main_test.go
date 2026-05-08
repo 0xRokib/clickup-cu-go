@@ -38,6 +38,33 @@ func TestSplitDurationAndNote(t *testing.T) {
 	}
 }
 
+func TestStatusNameUsesClickUpStatusObject(t *testing.T) {
+	task := map[string]any{
+		"status": map[string]any{
+			"status":     "IN PROGRESS",
+			"color":      "#1090E0",
+			"id":         "P90188784774_2VNJA8GM",
+			"orderindex": 2,
+			"type":       "custom",
+		},
+	}
+	if got := statusName(task); got != "IN PROGRESS" {
+		t.Fatalf("statusName=%q", got)
+	}
+}
+
+func TestPriorityUsesClickUpPriorityObject(t *testing.T) {
+	task := map[string]any{
+		"priority": map[string]any{
+			"priority": "high",
+			"color":    "#f50000",
+		},
+	}
+	if got := priority(task); got != "high" {
+		t.Fatalf("priority=%q", got)
+	}
+}
+
 func TestStylePlainMode(t *testing.T) {
 	style := newStyle(false)
 	if got := style.purple("cu"); got != "cu" {
